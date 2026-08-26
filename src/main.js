@@ -22,8 +22,9 @@ const dbg = document.getElementById('dbg');
 if (DEBUG) dbg.style.display = 'block';
 
 function resize() {
+  // Fill the viewport (fractional scale); snap to 0.5 steps above 1x so pixels stay near-uniform.
   let s = Math.min(innerWidth / W, innerHeight / H);
-  if (s >= 1) s = Math.floor(s);
+  if (s >= 1) s = Math.floor(s * 2) / 2;
   const cw = Math.round(W * s), ch = Math.round(H * s), dpr = Math.min(devicePixelRatio || 1, 2);
   canvas.style.width = cw + 'px'; canvas.style.height = ch + 'px';
   canvas.width = Math.round(cw * dpr); canvas.height = Math.round(ch * dpr);
@@ -34,7 +35,7 @@ resize();
 
 function showTitle() {
   G.state = 'title'; G.player = null; G.boss = null;
-  G.msg = 'DRAKEN'; G.sub = 'SKÄRGÅRDSSTRID\n\nPRESS Z / SPACE';
+  G.msg = 'DRAKEN'; G.sub = '0400 HOURS. UNIDENTIFIED\nAIRCRAFT OVER THE ARCHIPELAGO.\nTHEY ARE NOT UNIDENTIFIED.\nSCRAMBLE. DEFEND THE COAST.\n\nPRESS Z / SPACE';
   G.ctl = 'ARROWS / WASD  MOVE\nZ  FIRE     X  BOMB\nSHIFT  FOCUS';
 }
 function startGame() {
@@ -71,7 +72,7 @@ function update() {
     E.updateBullets(G.eb); E.updateBullets(G.pb);
     E.updateParticles(); E.updatePickups();
     collisions();
-    if (G.state === 'gameover') { G.msg = 'GAME OVER'; G.sub = 'PRESS Z TO RETRY'; G.gameoverT = 0; }
+    if (G.state === 'gameover') { G.msg = 'GAME OVER'; G.sub += '\n\nPRESS Z TO RETRY'; G.gameoverT = 0; }
   } else {
     G.gameoverT++;
     updateEnemies(); updateBoss(); E.updateBullets(G.eb); E.updateParticles();
@@ -83,9 +84,10 @@ function update() {
 
 function drawEnemy(e) {
   const f = F[e.def.frame];
-  if (e.def.air) R.sprite(f, e.x + 10, e.y + 16, 0, 1, 0, 0, 0, 0.35, 1);
-  R.sprite(f, e.x, e.y, e.rot);
-  if (e.flash) R.sprite(f, e.x, e.y, e.rot, 1, 1, 1, 1, Math.min(0.8, 0.25 * e.flash), 1);
+  const sx = e.def.air ? 1 - Math.abs(e.tilt) * 0.35 : 1;
+  if (e.def.air) R.sprite(f, e.x + 10, e.y + 16, e.rot, sx, 0, 0, 0, 0.35, 1, 1);
+  R.sprite(f, e.x, e.y, e.rot, sx, 1, 1, 1, 1, 0, 1);
+  if (e.flash) R.sprite(f, e.x, e.y, e.rot, sx, 1, 1, 1, Math.min(0.8, 0.25 * e.flash), 1, 1);
 }
 function render() {
   const t = G.time / 60;
@@ -100,10 +102,10 @@ function render() {
   for (const e of G.enemies) if (e.def.air) drawEnemy(e);
   const b = G.boss;
   if (b) {
-    R.sprite(F.boss, b.x + 14, b.y + 24, 0, 1, 0, 0, 0, 0.35, 1);
-    R.sprite(F.boss, b.x, b.y);
-    for (const [nx, ny] of [[-30, -10], [-14, -18], [14, -18], [30, -10]]) R.sprite(F.prop, b.x + nx, b.y + ny, b.prop + nx, 1, 1, 1, 1, 0.6);
-    if (b.flash) R.sprite(F.boss, b.x, b.y, 0, 1, 1, 1, 1, 0.18 * b.flash, 1);
+    R.sprite(F.boss, b.x + 14, b.y + 24, Math.PI, 1, 0, 0, 0, 0.35, 1);
+    R.sprite(F.boss, b.x, b.y, Math.PI);
+    for (const [nx, ny] of [[-30, 10], [-14, 18], [14, 18], [30, 10]]) R.sprite(F.prop, b.x + nx, b.y + ny, b.prop + nx, 1, 1, 1, 1, 0.6);
+    if (b.flash) R.sprite(F.boss, b.x, b.y, Math.PI, 1, 1, 1, 1, 0.18 * b.flash, 1);
   }
   const p = G.player;
   if (p && !p.dead && G.state === 'play') {

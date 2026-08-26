@@ -5,7 +5,7 @@ const bossbar = $('bossbar'), bossfill = $('bossfill');
 const last = {};
 function set(k, v) { if (last[k] !== v) { last[k] = v; el[k].textContent = v; } }
 
-export function setFontSize(scale) { $('stage').style.setProperty('--fs', Math.max(6, Math.round(5 * scale)) + 'px'); }
+export function setFontSize(scale) { $('stage').style.setProperty('--fs', Math.max(6, Math.round(6 * scale)) + 'px'); }
 export function updateHUD() {
   const p = G.player;
   set('score', String(G.score).padStart(7, '0'));

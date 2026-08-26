@@ -44,7 +44,7 @@ export const TYPES = {
 export function spawnEnemy(type, x, y, o = {}) {
   const d = TYPES[type];
   const hp = Math.ceil(d.hp * hpMul());
-  const e = { type, def: d, x, y, t: 0, hp, maxhp: hp, rad: d.rad, dir: 1, vx: 0, y0: y, seed: (Math.random() * 1000) | 0, flash: 0, rot: 0, ...o };
+  const e = { type, def: d, x, y, t: 0, hp, maxhp: hp, rad: d.rad, dir: 1, vx: 0, y0: y, seed: (Math.random() * 1000) | 0, flash: 0, rot: d.air ? Math.PI : 0, px: x, tilt: 0, ...o }; // aircraft sprites are drawn nose-up; enemies fly toward the player
   G.enemies.push(e);
   return e;
 }
@@ -64,6 +64,8 @@ export function updateEnemies() {
     const e = en[i];
     e.t++;
     e.def.update(e);
+    // Bank on lateral motion (same squash as player): tilt follows x velocity, clamped to +-1.
+    if (e.def.air) { const dx = e.x - e.px; e.px = e.x; e.tilt += (Math.max(-1, Math.min(1, dx / 1.5)) - e.tilt) * 0.2; }
     if (e.flash) e.flash--;
     if (e.hp <= 0) { killEnemy(i); continue; }
     if (e.y > H + 60 || e.x < -60 || e.x > W + 60 || (e.y < -100 && e.t > 200)) { en[i] = en[en.length - 1]; en.pop(); }

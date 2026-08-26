@@ -121,12 +121,25 @@ export function bomb(p) {
   spawnParticle(p.x, p.y, 0, 0, 50, 'ring', 0.5, 1, 1, 1, true, { grow: 0.5 });
   audio.bomb();
 }
+const QUIPS = [
+  'PILOT RETRIEVED BY FISHING BOAT.\nSMELLS OF HERRING.',
+  'EJECTED INTO A SAUNA.\nMORALE UNAFFECTED.',
+  'FIKA BREAK.\nINVOLUNTARY.',
+  'THE FLYGVAPNET REGRETS\nTHE PAPERWORK.',
+  'NOT A DENT ON THE SKERRY.\nTHE PLANE, HOWEVER...',
+  'LOST A DRAKEN.\nFOUND A NEW ISLAND.',
+  'THE MOOSE WATCHED.\nTHE MOOSE JUDGED.',
+  'BLAME THE WEATHER.\nIT WAS CLEAR. BLAME IT ANYWAY.',
+  'SPARE DRAKEN LOCATED\nBEHIND THE IKEA.',
+  'RE-ARMED WITH\nLINGONBERRY JAM. IT WILL DO.',
+];
 export function killPlayer() {
   const p = G.player;
   if (!p || p.dead) return;
   explosion(p.x, p.y, 2.2);
   audio.die();
   p.dead = 110; p.lives--;
+  G.sub = QUIPS[(Math.random() * QUIPS.length) | 0];
   clearBullets(G.eb, true);
   G.shake = 18; G.chroma = 1.5; G.flash = 0.5;
 }
@@ -135,6 +148,7 @@ export function updatePlayer(p) {
     p.dead--;
     if (p.dead === 0) {
       if (p.lives < 0) { G.state = 'gameover'; return; }
+      G.sub = '';
       p.x = W / 2; p.y = H - 40; p.inv = 160; p.bombs = Math.max(p.bombs, 3); p.shotT = 0; p.bombT = 0;
     }
     return;
