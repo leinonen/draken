@@ -1,6 +1,7 @@
 import { G, W, H, addScore } from './state.js';
 import { input } from './input.js';
 import { audio } from './audio.js';
+import { isLand } from './terrain.js';
 
 // ---------------- bullets (pooled) ----------------
 const pool = [];
@@ -89,7 +90,12 @@ export function updatePickups() {
 
 // ---------------- player ----------------
 export function newPlayer() {
-  return { x: W / 2, y: H - 50, power: 1, lives: 4, bombs: 3, inv: 120, dead: 0, shotT: 0, bombT: 0, graze: 0, rad: 2.5, tilt: 0 };
+  return { x: W / 2, y: H - 50, power: 1, lives: 4, bombs: 3, inv: 120, dead: 0, shotT: 0, bombT: 0, graze: 0, rad: 2.5, tilt: 0, scale: 1, intro: 0 };
+}
+// Title-screen showcase position/scale; the player flies from here to the start position.
+export const SHOW = { x: W / 2, y: H * 0.17, scale: 2.6 };
+export function startIntro(p) {
+  p.x = SHOW.x; p.y = SHOW.y; p.scale = SHOW.scale; p.intro = 75; p.inv = 200;
 }
 function fire(p) {
   const o = { frame: 'pshot', r: 0.6, g: 0.95, b: 1, rad: 2, dmg: 1 };
@@ -121,25 +127,52 @@ export function bomb(p) {
   spawnParticle(p.x, p.y, 0, 0, 50, 'ring', 0.5, 1, 1, 1, true, { grow: 0.5 });
   audio.bomb();
 }
-const QUIPS = [
+const QUIPS_SEA = [
   'PILOT RETRIEVED BY FISHING BOAT.\nSMELLS OF HERRING.',
+  'THE FLYGVAPNET REGRETS\nTHE PAPERWORK.',
+  'LOST A DRAKEN.\nFOUND A NEW ISLAND.',
+  'BLAME THE WEATHER.\nIT WAS CLEAR. BLAME IT ANYWAY.',
+  'SWAM ASHORE.\nWATER WAS 4 DEGREES. FINE.',
+  'ONE DRAKEN DOWN.\nONE VERY CALM PILOT.',
+  'THE ARCHIPELAGO HAS\n30,000 ISLANDS. NOW 30,001.',
+  'THE SEA GOT A DRAKEN.\nTHE SEA HAD IT COMING.',
+  'BACK TO BASE ON A KAYAK.\nNO ONE ASKED QUESTIONS.',
+  'DRAKEN LOST.\nSTICKER OF DRAKEN KEPT.',
+  'AIR TRAFFIC CONTROL:\n"HMM." END OF TRANSCRIPT.',
+  'NOW AN ARTIFICIAL REEF.\nTHE COD APPROVE.',
+  'SEAL COLONY UNIMPRESSED.\nTHEY HAVE SEEN WORSE.',
+  'FERRY TO FINLAND\nSTOPPED TO PICK YOU UP. FREE BUFFET.',
+  'LIFE JACKET: CHECK.\nDIGNITY: OVERBOARD.',
+  'BALTIC ENTRY, 4/10.\nSPLASH TOO BIG.',
+];
+const QUIPS_LAND = [
   'EJECTED INTO A SAUNA.\nMORALE UNAFFECTED.',
   'FIKA BREAK.\nINVOLUNTARY.',
-  'THE FLYGVAPNET REGRETS\nTHE PAPERWORK.',
   'NOT A DENT ON THE SKERRY.\nTHE PLANE, HOWEVER...',
-  'LOST A DRAKEN.\nFOUND A NEW ISLAND.',
   'THE MOOSE WATCHED.\nTHE MOOSE JUDGED.',
-  'BLAME THE WEATHER.\nIT WAS CLEAR. BLAME IT ANYWAY.',
   'SPARE DRAKEN LOCATED\nBEHIND THE IKEA.',
   'RE-ARMED WITH\nLINGONBERRY JAM. IT WILL DO.',
+  'INSURANCE DECLINED.\nACT OF NEIGHBOUR.',
+  'CRASHED NEAR A SUMMER HOUSE.\nOFFERED COFFEE. ACCEPTED.',
+  'REPORTED AS MISSING.\nFOUND IN THE QUEUE AT SYSTEMBOLAGET.',
+  'ALLEMANSRATTEN APPLIES.\nYOU MAY CAMP IN THE WRECK.',
+  'NOTHING TO SEE HERE.\nSAYS THE OFFICIAL STATEMENT.',
+  'PILOT ON SICK LEAVE.\nVAB APPROVED.',
+  'ORDERED A NEW DRAKEN.\nDELIVERY IN 6-8 WEEKS.',
+  'TEXTED MOM.\n"ALL GOOD." SENT.',
+  'LANDED IN A RED COTTAGE.\nWHITE TRIM NOW SLIGHTLY GREY.',
+  'PARACHUTED INTO A MIDSUMMER PARTY.\nSTILL THERE.',
+  'FLATTENED A BLUEBERRY PATCH.\nTHIS IS THE REAL TRAGEDY.',
+  'ON THE LIGHTHOUSE. NO ONE\nIS COMING. THEY WAVED.',
 ];
 export function killPlayer() {
   const p = G.player;
   if (!p || p.dead) return;
   explosion(p.x, p.y, 2.2);
   audio.die();
-  p.dead = 110; p.lives--;
-  G.sub = QUIPS[(Math.random() * QUIPS.length) | 0];
+  p.dead = 150; p.lives--;
+  const q = isLand(p.x, p.y, G.scroll) ? QUIPS_LAND : QUIPS_SEA;
+  G.sub = q[(Math.random() * q.length) | 0];
   clearBullets(G.eb, true);
   G.shake = 18; G.chroma = 1.5; G.flash = 0.5;
 }
@@ -151,6 +184,14 @@ export function updatePlayer(p) {
       G.sub = '';
       p.x = W / 2; p.y = H - 40; p.inv = 160; p.bombs = Math.max(p.bombs, 3); p.shotT = 0; p.bombT = 0;
     }
+    return;
+  }
+  if (p.intro) {
+    // Ease from showcase pose down to the start position.
+    p.intro--;
+    const k = 1 - p.intro / 75, e = k * k * (3 - 2 * k);
+    p.x = SHOW.x; p.y = SHOW.y + (H - 50 - SHOW.y) * e; p.scale = SHOW.scale + (1 - SHOW.scale) * e;
+    p.tilt *= 0.9;
     return;
   }
   const sp = input.focus ? 1.5 : 3.2;

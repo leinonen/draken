@@ -40,7 +40,7 @@ function showTitle() {
 }
 function startGame() {
   G.score = 0; G.stage = 1;
-  G.player = E.newPlayer();
+  G.player = E.newPlayer(); E.startIntro(G.player);
   G.enemies.length = 0; G.parts.length = 0; G.pickups.length = 0; G.timers.length = 0;
   E.clearBullets(G.eb, false); E.clearBullets(G.pb, false);
   G.boss = null; G.shake = 0; G.chroma = 0; G.flash = 0;
@@ -108,14 +108,21 @@ function render() {
     if (b.flash) R.sprite(F.boss, b.x, b.y, Math.PI, 1, 1, 1, 1, 0.18 * b.flash, 1);
   }
   const p = G.player;
+  if (G.state === 'title') {
+    const s = E.SHOW.scale, bob = Math.sin(t * 2) * 2;
+    R.sprite(F.draken, E.SHOW.x + 8 * s, E.SHOW.y + bob + 14 * s, 0, s, 0, 0, 0, 0.35, 1, s);
+    R.sprite(F.draken, E.SHOW.x, E.SHOW.y + bob, 0, s, 1, 1, 1, 1, 0, s);
+  }
   if (p && !p.dead && G.state === 'play') {
-    const sx = 1 - Math.abs(p.tilt) * 0.35, a = p.inv > 0 && (p.inv % 8 < 4) ? 0.45 : 1;
-    R.sprite(F.draken, p.x + 8, p.y + 14, 0, sx, 0, 0, 0, 0.35, 1, 1);
-    R.sprite(F.draken, p.x, p.y, 0, sx, 1, 1, 1, a, 0, 1);
+    const s = p.scale, sx = s * (1 - Math.abs(p.tilt) * 0.35), a = p.inv > 0 && !p.intro && (p.inv % 8 < 4) ? 0.45 : 1;
+    R.sprite(F.draken, p.x + 8 * s, p.y + 14 * s, 0, sx, 0, 0, 0, 0.35, 1, s);
+    R.sprite(F.draken, p.x, p.y, 0, sx, 1, 1, 1, a, 0, s);
   }
   R.setAdditive(true);
+  if (G.state === 'title') { const s = E.SHOW.scale; R.sprite(F.flame, E.SHOW.x, E.SHOW.y + Math.sin(t * 2) * 2 + 17 * s, 0, s * (0.8 + Math.random() * 0.4), 1, 0.8, 0.5, 0.9, 0, s * (1 + Math.random() * 0.6)); }
   if (p && !p.dead && G.state === 'play') {
-    R.sprite(F.flame, p.x, p.y + 17, 0, 0.8 + Math.random() * 0.4, 1, 0.8, 0.5, 0.9, 0, 1 + Math.random() * 0.6);
+    const s = p.scale;
+    R.sprite(F.flame, p.x, p.y + 17 * s, 0, s * (0.8 + Math.random() * 0.4), 1, 0.8, 0.5, 0.9, 0, s * (1 + Math.random() * 0.6));
     if (input.focus) { R.sprite(F.ring, p.x, p.y, t * 3, 0.5, 1, 1, 1, 0.6); R.sprite(F.spark, p.x, p.y, 0, 1.3, 1, 0.3, 0.3, 1); }
   }
   for (const k of G.pb) R.sprite(F[k.frame], k.x, k.y, k.rot, k.sx, k.r, k.g, k.b, 0.9);
