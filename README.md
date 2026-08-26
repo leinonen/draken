@@ -7,7 +7,7 @@ synthesized audio. Zero dependencies, no build step.
 
 ## Run
 
-    python3 -m http.server 8000     # or: npm start
+    python3 -m http.server 8000     # or: make start
     open http://localhost:8000
 
 Needs a browser with WebGL2 (any current Chrome/Firefox/Safari).
