@@ -1,4 +1,4 @@
-import { G, W, H, addScore } from './state.js';
+import { G, W, H, addScore, after } from './state.js';
 import { input } from './input.js';
 import { audio } from './audio.js';
 import { isLand } from './terrain.js';
@@ -62,6 +62,39 @@ export function explosion(x, y, size = 1) {
     spawnParticle(x + (Math.random() - 0.5) * 8 * size, y + (Math.random() - 0.5) * 8 * size, (Math.random() - 0.5) * 0.6, -0.2 - Math.random() * 0.5, 40 + Math.random() * 30, 'smoke', 0.8 + size * 0.6, 0.22, 0.22, 0.25, false, { grow: 0.04, drag: 0.98, fade: 0.8 });
   spawnParticle(x, y, 0, 0, 8, 'smoke', 2.5 * size, 1, 0.9, 0.6, true, { grow: 0.35 });
   spawnParticle(x, y, 0, 0, 18, 'ring', 0.4 * size, 1, 0.7, 0.3, true, { grow: 0.12 * size });
+}
+
+// Burning wreck on land: anchor scrolls with terrain, emits flame + smoke for a while.
+export function crashFire(x, y, frames = 240) {
+  const f = { x, y, t: 0 };
+  const tick = () => {
+    f.t++; f.y += G.scrollSpeed;
+    if (f.y > H + 20 || f.t > frames) return;
+    const k = 1 - f.t / frames; // fade out as it burns down
+    if (f.t % 2 === 0) spawnParticle(f.x + (Math.random() - 0.5) * 8, f.y + (Math.random() - 0.5) * 4, (Math.random() - 0.5) * 0.3, -0.4 - Math.random() * 0.6 + G.scrollSpeed, 14 + Math.random() * 12, 'flame', (0.8 + Math.random() * 0.8) * (0.4 + 0.6 * k), 1, 0.7 + Math.random() * 0.3, 0.4, true, { grow: -0.02, drag: 0.96, rot: (Math.random() - 0.5) * 0.6 });
+    if (f.t % 5 === 0) spawnParticle(f.x + (Math.random() - 0.5) * 6, f.y - 4, (Math.random() - 0.5) * 0.4, -0.5 - Math.random() * 0.4 + G.scrollSpeed * 0.7, 60 + Math.random() * 40, 'smoke', 0.6 + Math.random() * 0.5, 0.15, 0.15, 0.17, false, { grow: 0.03, drag: 0.985, fade: 0.7 * (0.5 + 0.5 * k) });
+    if (f.t % 9 === 0) spawnParticle(f.x + (Math.random() - 0.5) * 6, f.y, (Math.random() - 0.5) * 1.5, -1 - Math.random() * 1.5 + G.scrollSpeed, 20 + Math.random() * 20, 'spark', 0.8, 1, 0.8, 0.3, true, { grav: 0.05, drag: 0.97 });
+    after(1, tick);
+  };
+  after(1, tick);
+}
+
+// Water crash: white spray column, expanding ripple rings, lingering foam that scrolls with the sea.
+export function splash(x, y) {
+  for (let i = 0; i < 26; i++) {
+    const a = -Math.PI / 2 + (Math.random() - 0.5) * 1.6, sp = 1.5 + Math.random() * 3;
+    spawnParticle(x + (Math.random() - 0.5) * 6, y, Math.cos(a) * sp, Math.sin(a) * sp, 25 + Math.random() * 20, 'spark', 1.2 + Math.random(), 0.9, 0.97, 1, false, { grav: 0.12, drag: 0.98, fade: 0.9 });
+  }
+  for (let i = 0; i < 3; i++) after(i * 6, () => spawnParticle(x, y, 0, G.scrollSpeed, 30 + i * 8, 'ring', 0.3, 0.85, 0.95, 1, false, { grow: 0.09 - i * 0.015, fade: 0.6 }));
+  spawnParticle(x, y, 0, G.scrollSpeed, 12, 'smoke', 2.2, 1, 1, 1, false, { grow: 0.25, fade: 0.8 });
+  const f = { x, y, t: 0 };
+  const tick = () => {
+    f.t++; f.y += G.scrollSpeed;
+    if (f.y > H + 20 || f.t > 150) return;
+    if (f.t % 4 === 0) spawnParticle(f.x + (Math.random() - 0.5) * 14, f.y + (Math.random() - 0.5) * 8, (Math.random() - 0.5) * 0.2, G.scrollSpeed, 40 + Math.random() * 30, 'smoke', 0.5 + Math.random() * 0.5, 0.9, 0.95, 1, false, { grow: 0.02, fade: 0.45 * (1 - f.t / 150) });
+    after(1, tick);
+  };
+  after(1, tick);
 }
 
 // ---------------- pickups ----------------
@@ -171,8 +204,10 @@ export function killPlayer() {
   explosion(p.x, p.y, 2.2);
   audio.die();
   p.dead = 150; p.lives--;
-  const q = isLand(p.x, p.y, G.scroll) ? QUIPS_LAND : QUIPS_SEA;
+  const land = isLand(p.x, p.y, G.scroll);
+  const q = land ? QUIPS_LAND : QUIPS_SEA;
   G.sub = q[(Math.random() * q.length) | 0];
+  if (land) crashFire(p.x, p.y); else splash(p.x, p.y);
   clearBullets(G.eb, true);
   G.shake = 18; G.chroma = 1.5; G.flash = 0.5;
 }
